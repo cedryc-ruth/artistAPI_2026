@@ -18,15 +18,54 @@ security:
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
         
+        #Firewall pour obtenir le token JWT
+        login:
+            pattern: ^/api/login
+            stateless: true
+            json_login:
+                check_path: /api/login_check
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
+        #Firewall pour les routes JWT
         api:
             pattern: ^/api
             stateless: true
             http_basic: ~
             provider: app_user_provider
 
+        # # Firewall pour l'authentification basique
+        # basic_auth:
+        #     pattern: ^/basic_api # Routes API protégées par Basic Auth
+        #     stateless: true
+        #     provider: app_user_provider
+        #     http_basic: ~ # Active Basic Auth
+
+        # Firewall pour les pages Web
         main:
             lazy: true
             provider: app_user_provider
+            pattern: ^/
+            security: true
+
+            # activate different ways to authenticate
+            # https://symfony.com/doc/current/security.html#the-firewall
+            form_login:
+                login_path: app_login   # Show Login form
+                check_path: app_login   # Handle Login form
+                default_target_path: app_artist_index
+                enable_csrf: true
+
+            logout:
+                path: app_logout
+
+                # where to redirect after logout
+                target: app_artist_index
+
+            # configure the maximum login attempts
+            login_throttling:
+                max_attempts: 3
+                interval: '15 minutes'
 
             # Activate different ways to authenticate:
             # https://symfony.com/doc/current/security.html#the-firewall
@@ -38,7 +77,10 @@ security:
     access_control:
         # - { path: ^/admin, roles: ROLE_ADMIN }
         # - { path: ^/profile, roles: ROLE_USER }
-        - { path: ^/api, roles: ROLE_USER }
+        # Permet l'accès sans authentification
+        - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        # Restreindre l'accès à l'API aux utilisateurs authentifiés
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 
 when@test:
     security:
